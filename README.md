@@ -193,3 +193,11 @@ work:
 - **[nes-ra-adapter](https://github.com/odelot/nes-ra-adapter)** (odelot) — an
   architecture cousin worth a look (CRC game ID, frame-cadence heuristic,
   compatibility tracking).
+
+## Support
+
+<p align="center">
+  <a href="https://ko-fi.com/philmole" target="_blank">
+    <img src="https://github.com/user-attachments/assets/5f3a6e3f-4030-4082-920f-1814115820f1" alt="Support me on Ko-fi" width="1200" height="675">
+  </a>
+</p>
