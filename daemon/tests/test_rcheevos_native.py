@@ -21,8 +21,8 @@ from achievementbox.rcbridge import DLL_PATH, RcClient  # noqa: E402
 
 @unittest.skipUnless(DLL_PATH.is_file(),
                      f"requires the native rcheevos library at {DLL_PATH}")
-class ShippedRcheevosNativeTest(unittest.TestCase):
-    def test_actual_dll_is_created_in_casual_mode(self):
+class NativeRcheevosLibraryTest(unittest.TestCase):
+    def test_native_library_creates_client_in_casual_mode(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             client = RcClient(
                 lambda _address, length: bytes(length),

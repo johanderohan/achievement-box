@@ -163,8 +163,7 @@ def main():
         from achievementbox.edpro import find_cart_port
         found = find_cart_port()
         if not found:
-            raise SystemExit("no Mega EverDrive Pro found; pass --port "
-                         "(COMx on Windows, /dev/ttyACMx on Linux)")
+            raise SystemExit("no Mega EverDrive Pro found; pass --port")
         args.port = found
 
     with EdProSerial(args.port) as dev:

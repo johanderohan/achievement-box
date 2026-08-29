@@ -19,7 +19,7 @@ never blank the UI.
 Usage:
   Windows: .venv\\Scripts\\python daemon\\webapp.py [--port PORT] [--http 8000]
   Linux:   .venv/bin/python daemon/webapp.py [--port PORT] [--http 8000]
-  (--port is COM5 / /dev/ttyACM0; omit it to autodetect the cart)
+  (--port is COM5 or /dev/ttyACM0; omit it to autodetect the cart)
   (RA_USER/RA_PASS from environment or daemon/.env, as ra_session)
 
 Do NOT run ra_session.py at the same time -- this replaces it.

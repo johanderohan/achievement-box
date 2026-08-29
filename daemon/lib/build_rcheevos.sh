@@ -28,13 +28,26 @@ log() { printf '>> %s\n' "$*"; }
 
 # --- obtain sources ---------------------------------------------------
 if [ -n "${RCHEEVOS_SRC:-}" ]; then
+    # An explicit checkout is taken as given -- the caller owns which
+    # revision it is -- but say so, since it need not be RCHEEVOS_TAG.
     SRC_DIR="$RCHEEVOS_SRC"
     log "using existing rcheevos checkout: $SRC_DIR"
+    log "  at: $(git -C "$SRC_DIR" describe --tags --always --dirty 2>/dev/null \
+                 || echo 'unknown revision')"
 else
     SRC_DIR="$BUILD_DIR/rcheevos"
-    if [ -d "$SRC_DIR/.git" ]; then
-        log "reusing clone at $SRC_DIR"
+    # KEEP_BUILD leaves this clone behind, so a later run -- or a bumped
+    # RCHEEVOS_TAG -- would otherwise reuse it and silently build the
+    # wrong version. Reuse it only when it is already at the wanted tag.
+    if [ -d "$SRC_DIR/.git" ] &&
+       [ "$(git -C "$SRC_DIR" describe --tags --exact-match 2>/dev/null)" \
+         = "$RCHEEVOS_TAG" ]; then
+        log "reusing clone at $SRC_DIR ($RCHEEVOS_TAG)"
     else
+        if [ -d "$SRC_DIR" ]; then
+            log "clone at $SRC_DIR is not $RCHEEVOS_TAG -- discarding it"
+            rm -rf "$SRC_DIR"
+        fi
         log "cloning rcheevos $RCHEEVOS_TAG"
         mkdir -p "$BUILD_DIR"
         git clone --depth 1 --branch "$RCHEEVOS_TAG" "$RCHEEVOS_URL" "$SRC_DIR"
