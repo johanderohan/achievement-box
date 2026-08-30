@@ -180,6 +180,26 @@ def _classify_folder(dev, folder: str) -> str | None:
     return "md" if has_md else None
 
 
+def scan_dirs_from_library(games) -> list[tuple[str, str]]:
+    """[(top-level folder, system)] for a cached library.
+
+    Mirrors what discover_dirs returns, so a seeded value and a rescanned
+    one are interchangeable. The folder comes from the game's path, not
+    from its "folder" tag: that tag is a display label and on a library
+    filed into A/B/C subfolders it holds the letter, which never prefixes
+    the launch path the web UI sends.
+    """
+    seeded: dict[str, str] = {}
+    for game in games:
+        path = (game.get("path") or "").lstrip("/")
+        if "/" not in path:
+            continue
+        top = path.split("/", 1)[0]
+        if top and top not in seeded:
+            seeded[top] = game.get("system", "md")
+    return sorted(seeded.items())
+
+
 def discover_dirs(dev, log=print) -> list[tuple[str, str]]:
     """Auto-detect every top-level SD folder that holds ROMs.
 

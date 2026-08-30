@@ -1620,12 +1620,7 @@ def main():
     # launches work before the first rescan; a rescan (discover_dirs) then
     # replaces this with whatever folders currently hold ROMs. Fall back to
     # the classic two folders for a pre-folder-tag cache.
-    seeded: dict[str, str] = {}
-    for g in gamelib.cached_library():
-        f = g.get("folder")
-        if f and f not in seeded:
-            seeded[f] = g.get("system", "md")
-    SCAN_DIRS[:] = (list(seeded.items())
+    SCAN_DIRS[:] = (gamelib.scan_dirs_from_library(gamelib.cached_library())
                     or [(GAMES_DIR, "md"), (CD_DIR, "mcd")])
 
     # cart detection happens in the worker (and re-runs whenever the cart
