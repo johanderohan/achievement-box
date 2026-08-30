@@ -37,9 +37,16 @@ class RegionMonitor:
     consecutive off-region verdicts; no-verdict samples reset the streak
     and never trip. Once tripped it stays tripped: the session is over
     until the next game launch, so create a fresh monitor per session.
+
+    ``expected`` defaults to None, meaning the first real verdict becomes
+    the baseline. What matters is that the region *changed* mid-game, not
+    which one it started in, and the $A10001 latch cannot be relied on at
+    session start -- it only reports once the running game has read it,
+    which may be after evaluation begins. Pass a region explicitly only
+    when it is already known.
     """
 
-    def __init__(self, expected: str = "NTSC", debounce: int = 4):
+    def __init__(self, expected: str | None = None, debounce: int = 4):
         self.expected = expected
         self.debounce = debounce
         self.tripped = False
@@ -57,6 +64,14 @@ class RegionMonitor:
             return False  # first sample primes; bad clock = no verdict
         rate = ((count - prev_count) % 256) / (now - prev_time)
         verdict = classify_frame_rate(rate)
+        if verdict is not None and self.expected is None:
+            # Baseline comes from the first *verdict*, never from a
+            # no-verdict sample: boot and loading screens sit below the
+            # classifier's floor, and latching one would make the first
+            # real reading look like a flip.
+            self.expected = verdict
+            self._streak = 0
+            return False
         if verdict is None or verdict == self.expected:
             self._streak = 0
             return False

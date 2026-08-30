@@ -1032,20 +1032,14 @@ class HwWorker(threading.Thread):
         info = self.client.game_info()
         console_region = backend.read_console_region()
         if console_region == "PAL":
-            print(f"[{stamp()}] PAL console mode detected -- refusing to "
-                  "present/evaluate an NTSC RetroAchievements session",
-                  flush=True)
-            self.client.unload_game()
-            unlock_sink.clear()
-            hub.update(connection="unsupported-region",
-                       game={"title": info.get("title"),
-                             "id": info.get("id"),
-                             "icon": info.get("icon", ""),
-                             "path": sd_path,
-                             "region": console_region},
-                       achievements=[], summary=None, rich_presence=None)
-            self._wait_for_menu_or_launch()
-            return
+            # Sets are authored against NTSC timing, so conditions counted
+            # in frames get 20% more wall-clock time here. Unlocks are
+            # Casual-only either way (rcbridge disables hardcore
+            # unconditionally), which is the tier that already tolerates
+            # save states -- so this reports rather than refuses.
+            print(f"[{stamp()}] PAL console mode -- frame-counted "
+                  "achievement conditions may behave differently to the "
+                  "NTSC timing sets are authored for", flush=True)
         # RA maps known-bad revisions to a pseudo game whose title begins
         # "Unsupported Game Version". It can contain warning achievements,
         # but it is not a playable achievement set and must never enter the
@@ -1068,7 +1062,8 @@ class HwWorker(threading.Thread):
               f"achievements)", flush=True)
         hub.update(connection="playing",
                    game={"title": info.get("title"), "id": info.get("id"),
-                         "icon": info.get("icon", ""), "path": sd_path},
+                         "icon": info.get("icon", ""), "path": sd_path,
+                         "region": console_region},
                    summary=s, achievements=achievements,
                    rich_presence=None)
 
@@ -1080,10 +1075,13 @@ class HwWorker(threading.Thread):
         # The $A10001 latch above only proves the region at boot; a console
         # whose NTSC/PAL switch is flipped mid-game keeps running with
         # nothing on the bus to re-latch. frame_watch's vblank counter gives
-        # the live cadence -- PAL sessions never reach this point, so the
-        # expected verdict is always NTSC. Old gateware without the counter
-        # yields a frozen register (delta 0 = no verdict), which never trips.
-        region_monitor = RegionMonitor(expected="NTSC")
+        # the live cadence. The monitor takes its baseline from the first
+        # verdict rather than from the latch: at this point the running
+        # game may not have read $A10001 yet, and assuming a region there
+        # stops every session on the console that does not match. Old
+        # gateware without the counter yields a frozen register (delta 0
+        # = no verdict), which never trips.
+        region_monitor = RegionMonitor()
         self.evaluating_achievements = True
         try:
             while True:

@@ -114,3 +114,50 @@ class RegionMonitorTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _feed_cadence(mon, rates, seconds=1.0):
+    """Drive the monitor at the given per-second frame rates."""
+    count, now, trips = 0, 0.0, []
+    for rate in rates:
+        count = (count + round(rate * seconds)) % 256
+        now += seconds
+        trips.append(mon.feed(count, now))
+    return trips
+
+
+class LearnedBaselineTest(unittest.TestCase):
+    """Without an explicit `expected`, the monitor adopts the first real
+    verdict as its baseline. Its job is spotting a *change* of region,
+    not enforcing one, and the $A10001 latch is not reliably readable at
+    session start -- the running game may not have touched it yet."""
+
+    def test_steady_pal_console_never_trips(self):
+        mon = RegionMonitor()
+        self.assertEqual(_feed_cadence(mon, [50.0] * 20), [False] * 20)
+        self.assertFalse(mon.tripped)
+
+    def test_steady_ntsc_console_never_trips(self):
+        mon = RegionMonitor()
+        self.assertEqual(_feed_cadence(mon, [60.0] * 20), [False] * 20)
+        self.assertFalse(mon.tripped)
+
+    def test_flip_away_from_learned_baseline_trips(self):
+        mon = RegionMonitor(debounce=4)
+        trips = _feed_cadence(mon, [50.0] * 6 + [60.0] * 6)
+        self.assertTrue(any(trips), "a PAL->NTSC flip must trip")
+        self.assertEqual(trips.count(True), 1, "trips exactly once")
+
+    def test_no_verdict_samples_do_not_become_the_baseline(self):
+        """Boot and loading screens disable v-interrupts, yielding rates
+        below the classifier's floor. Latching one of those as the
+        baseline would make the first real verdict look like a flip."""
+        mon = RegionMonitor(debounce=4)
+        trips = _feed_cadence(mon, [20.0, 25.0, 33.0] + [50.0] * 12)
+        self.assertFalse(any(trips))
+        self.assertFalse(mon.tripped)
+
+    def test_explicit_expected_still_honoured(self):
+        """Callers that know the region can still say so."""
+        mon = RegionMonitor(expected="NTSC", debounce=4)
+        self.assertTrue(any(_feed_cadence(mon, [50.0] * 6)))
