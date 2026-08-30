@@ -213,6 +213,27 @@ body{font-family:'Inter',sans-serif;color:var(--ink);padding:0;overflow:hidden}
 .ginfo .y{font-family:'JetBrains Mono';font-size:10px;letter-spacing:.1em;color:var(--gold-deep);text-transform:uppercase}
 .ginfo .d{font-size:11px;color:var(--ink-3);line-height:1.45;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 
+/* -------- library search -------- */
+.libsearch{position:relative;display:flex;align-items:center;flex:0 1 220px;min-width:140px}
+/* Narrow screens: the search takes its own row. Sharing one with the
+   facet chips squeezed them into a 46px column two hundred pixels tall
+   on a 390px viewport. */
+@media(max-width:560px){
+  .libsearch{flex:1 1 100%}
+  .filterbar{flex:1 1 auto}
+}
+.libsearch input{width:100%;font-family:'Space Grotesk';font-weight:600;font-size:12px;
+  color:var(--ink-1);background:#0d0f13;border:1px solid var(--ui-line);border-radius:10px;
+  padding:7px 26px 7px 10px;outline:none;-webkit-appearance:none;appearance:none}
+.libsearch input::placeholder{color:var(--ink-3);font-weight:500}
+.libsearch input:focus{border-color:rgba(245,197,66,.4)}
+/* the UA's own clear affordance would sit on top of ours */
+.libsearch input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.libsearch .clear{position:absolute;right:6px;width:18px;height:18px;line-height:1;
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+  color:var(--ink-3);background:none;border:none;cursor:pointer;padding:0}
+.libsearch .clear:hover{color:var(--ink-1)}
+
 /* -------- faceted filter bar -------- */
 .filterbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1;min-width:0}
 .fdrop{position:relative}

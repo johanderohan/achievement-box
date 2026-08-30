@@ -50,6 +50,25 @@ const saveFilters = () => localStorage.setItem('abox.filters',
   JSON.stringify(Object.fromEntries(FKEYS.map(k => [k, [...sel[k]]]))));
 const gameGenres = g => (g.genre || '').split(',')
   .map(s => s.trim()).filter(Boolean);
+/* Search is a facet like the others, not a replacement for them: with a
+   2,500-game library "sonic" plus a genre filter is a common ask. Kept
+   out of saveFilters deliberately -- a persisted query would silently
+   hide the library on the next visit. */
+let searchQuery = '';
+const searchNorm = s => (s || '').toString().normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')       // strip accents
+  .replace(/[^a-z0-9]+/gi, ' ').trim().toLowerCase();
+const gameHaystack = g => {
+  if (g._hay === undefined) g._hay = searchNorm(
+    [g.title, g.stem, g.publisher].filter(Boolean).join(' '));
+  return g._hay;
+};
+const matchesSearch = g => {
+  if (!searchQuery) return true;
+  const hay = gameHaystack(g);
+  // every term must appear: "sonic 2" narrows, it does not widen
+  return searchQuery.split(' ').every(t => hay.includes(t));
+};
 let cdLaunched = false;    // launched a Mega CD game (cart leaves USB)
 let forceLibrary = false;  // "Games" tapped while a game runs
 let lastGameId = null;
@@ -589,6 +608,7 @@ const firstLetter = g => {
   return c >= 'A' && c <= 'Z' ? c : '#';
 };
 const libVisible = () => library.filter(g =>
+  matchesSearch(g) &&
   (!sel.system.size    || sel.system.has(g.system)) &&
   (!sel.folder.size    || sel.folder.has(g.folder)) &&
   (!sel.publisher.size || sel.publisher.has(g.publisher)) &&
@@ -1007,6 +1027,34 @@ $('refresh').onclick = () => loadLibrary(true);
 
 /* faceted filter bar: open/close dropdowns, tick values, per-group and
    global clear, letter jump. Delegated so it survives buildFilterBar. */
+/* Search input. Debounced because applyFilters walks every card, and a
+   fast typist would otherwise queue a full pass per keystroke. */
+{
+  const input = $('libsearch');
+  const clear = $('libsearch-clear');
+  let timer = null;
+  const run = () => {
+    const next = searchNorm(input.value);
+    if (next === searchQuery) return;
+    searchQuery = next;
+    clear.classList.toggle('hidden', !input.value);
+    applyFilters();
+  };
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(run, 120);
+  });
+  // Enter should feel instant rather than wait out the debounce, and it
+  // dismisses the phone keyboard so the results are actually visible.
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { clearTimeout(timer); run(); input.blur(); }
+    if (e.key === 'Escape') { input.value = ''; clearTimeout(timer); run(); }
+  });
+  clear.addEventListener('click', () => {
+    input.value = ''; clearTimeout(timer); run(); input.focus();
+  });
+}
+
 $('filterbar').addEventListener('click', e => {
   const toggle = e.target.closest('[data-toggle]');
   if (toggle) {
